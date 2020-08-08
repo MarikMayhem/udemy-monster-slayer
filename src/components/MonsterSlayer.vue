@@ -6,7 +6,7 @@
         <div class="healthbar">
           <div
             class="healthbar text-center"
-            :style="{width: `${playerHP}%`,maxWidth:'130%',backgroundColor: 'green', margin: 0, color: 'white'}"
+            :style="{width: `${playerHP}%`, backgroundColor: 'green', margin: 0, color: 'white'}"
           >{{playerHP}}</div>
         </div>
       </div>
@@ -20,17 +20,17 @@
         </div>
       </div>
     </section>
-    <section v-if="gameStarted = !gameStarted" class="row controls">
+    <section v-if="!gameStarted" class="row controls">
       <div class="small-12 columns">
         <button @click="startNewGame" id="start-game">START NEW GAME</button>
       </div>
     </section>
-    <section v-if="gameStarted = !gameStarted" class="row controls">
+    <section v-if="gameStarted" class="row controls">
       <div class="small-12 columns">
-        <button @click="attack(10)" id="attack">ATTACK</button>
-        <button @click="attack(20)" id="special-attack">SPECIAL ATTACK</button>
+        <button @click="attack('normal')" id="attack">ATTACK</button>
+        <button @click="attack('special')" id="special-attack">SPECIAL ATTACK</button>
         <button @click="heal()" id="heal">HEAL</button>
-        <button @click="gameStarted = !gameStarted" id="give-up">GIVE UP</button>
+        <button @click="stopGame()" id="give-up">GIVE UP</button>
       </div>
     </section>
     <section v-if="attackFeed.length" class="row log">
@@ -59,56 +59,50 @@ export default {
     };
   },
   methods: {
-    randomDamage(dmg) {
-      return Math.floor(Math.random() * Math.floor(dmg));
-    },
     startNewGame() {
       this.playerHP = 100;
       this.monsterHP = 100;
       this.attackFeed = [];
-      return (this.gameStarted = true);
+      this.gameStarted = !this.gameStarted;
     },
-    attack(damage) {
-      var monsterDamage = this.randomDamage(damage);
-      var playerDamage = this.randomDamage(damage);
-      this.monsterHP -= playerDamage;
-      this.attackFeed.unshift(`PLAYER HITS MONSTER FOR ${playerDamage}`);
+    randomDamage(maxDmg, minDmg) {
+      return Math.max(Math.floor(Math.random() * maxDmg) + 1, minDmg);
+    },
+    stopGame() {
+      return (this.gameStarted = false);
+    },
+    monsterAttack() {
+      var monsterRange = 12;
+      var minMonsterRange = 5;
+      var monsterDamage = this.randomDamage(monsterRange, minMonsterRange);
       this.playerHP -= monsterDamage;
       this.attackFeed.unshift(`MONSTER HITS PLAYER FOR ${monsterDamage}`);
+    },
+    playerAttack(kind) {
+      //NORMAL : SPECIAL
+      var playerRange = kind === "normal" ? 10 : 20;
+      var minPlayerRange = kind === "normal" ? 3 : 10;
+      var playerDamage = this.randomDamage(playerRange, minPlayerRange);
+      var message =
+        kind === "normal"
+          ? `PLAYER HITS MONSTER FOR ${playerDamage}`
+          : `PLAYER HITS MONSTER HARD FOR ${playerDamage}`;
+      this.monsterHP -= playerDamage;
+      this.attackFeed.unshift(message);
+    },
+    attack(damageKind) {
+      this.playerAttack(damageKind);
+      this.monsterAttack();
 
-      console.log(this.attackFeed);
+      this.playerHP <= 0 ? alert("You loose, start new game?") : "";
+      this.monsterHP <= 0 ? alert("You Win, start new game?") : "";
     },
     heal() {
-      var monsterDamage = this.randomDamage(10);
-      this.playerHP += 10;
-      this.playerHP -= monsterDamage;
+      this.playerHP <= 90 ? (this.playerHP += 10) : (this.playerHP = 100);
       this.attackFeed.unshift(`PLAYER HEALS HIMSELF FOR 10`);
-      this.attackFeed.unshift(`MONSTER HITS PLAYER FOR ${monsterDamage}`);
-    },
-  },
-  watch: {
-    playerHP(hp) {
-      if (hp <= 0) {
-        alert("You loose, start new game?");
-        this.gameStarted = false;
-      }
-    },
-    monsterHP(hp) {
-      if (hp <= 0) {
-        alert("You win, start new game?");
-        this.gameStarted = false;
-      }
-    },
-  },
-  computed: {
-    displayGame() {
-      return (gameStarted = !gameStarted);
+
+      this.monsterAttack();
     },
   },
 };
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-/*  */
-</style>
